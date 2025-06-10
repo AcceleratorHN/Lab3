@@ -1,0 +1,343 @@
+#include <iostream>
+#include <vector>
+#include <queue>
+#include <list>
+#include <chrono>
+using namespace std;
+using namespace std::chrono;
+
+// Решение задачи a) с использованием массива
+int josephus_array_a(int n, int m) {
+    if (n == 1) return 1;
+    
+    bool* alive = new bool[n+1]; // индексация с 1
+    for (int i = 1; i <= n; ++i) alive[i] = true;
+    
+    int current = 1;
+    int remaining = n;
+    
+    while (remaining > 1) {
+        // Находим следующего живого человека через m-1 шагов
+        int steps = 0;
+        while (steps < m) {
+            if (alive[current]) {
+                steps++;
+                if (steps == m) break;
+            }
+            current = (current % n) + 1;
+        }
+        
+        // Убираем текущего человека
+        alive[current] = false;
+        remaining--;
+        
+        // Находим следующего живого человека для начала следующего круга
+        if (remaining > 0) {
+            do {
+                current = (current % n) + 1;
+            } while (!alive[current]);
+        }
+    }
+    
+    // Находим оставшегося человека
+    int survivor = 0;
+    for (int i = 1; i <= n; ++i) {
+        if (alive[i]) {
+            survivor = i;
+            break;
+        }
+    }
+    
+    delete[] alive;
+    return survivor;
+}
+
+// Решение задачи b) с использованием массива
+int josephus_array_b(int n, int m, int l) {
+    for (int start = 1; start <= n; ++start) {
+        bool* alive = new bool[n+1];
+        for (int i = 1; i <= n; ++i) alive[i] = true;
+        
+        int current = start;
+        int remaining = n;
+        
+        while (remaining > 1) {
+            int steps = 0;
+            while (steps < m) {
+                if (alive[current]) {
+                    steps++;
+                    if (steps == m) break;
+                }
+                current = (current % n) + 1;
+            }
+            
+            alive[current] = false;
+            remaining--;
+            
+            if (remaining > 0) {
+                do {
+                    current = (current % n) + 1;
+                } while (!alive[current]);
+            }
+        }
+        
+        int survivor = 0;
+        for (int i = 1; i <= n; ++i) {
+            if (alive[i]) {
+                survivor = i;
+                break;
+            }
+        }
+        
+        delete[] alive;
+        
+        if (survivor == l) {
+            return start;
+        }
+    }
+    
+    return -1; // не должно происходить при корректных входных данных
+}
+struct Node {
+    int data;
+    Node* next;
+    Node(int d) : data(d), next(nullptr) {}
+};
+
+// Решение задачи a) с использованием связного списка
+int josephus_list_a(int n, int m) {
+    if (n == 1) return 1;
+    
+    // Создаем кольцевой список
+    Node* head = new Node(1);
+    Node* prev = head;
+    for (int i = 2; i <= n; ++i) {
+        prev->next = new Node(i);
+        prev = prev->next;
+    }
+    prev->next = head; // замыкаем круг
+    
+    Node* current = head;
+    Node* previous = prev;
+    
+    while (current->next != current) {
+        // Находим m-го человека
+        for (int i = 1; i < m; ++i) {
+            previous = current;
+            current = current->next;
+        }
+        
+        // Удаляем текущего человека
+        previous->next = current->next;
+        Node* toDelete = current;
+        current = previous->next;
+        delete toDelete;
+    }
+    
+    int survivor = current->data;
+    delete current;
+    return survivor;
+}
+
+// Решение задачи b) с использованием связного списка
+int josephus_list_b(int n, int m, int l) {
+    for (int start = 1; start <= n; ++start) {
+        // Создаем кольцевой список
+        Node* head = new Node(1);
+        Node* prev = head;
+        for (int i = 2; i <= n; ++i) {
+            prev->next = new Node(i);
+            prev = prev->next;
+        }
+        prev->next = head; // замыкаем круг
+        
+        // Находим начальную позицию
+        Node* current = head;
+        while (current->data != start) {
+            current = current->next;
+        }
+        Node* previous = prev;
+        while (previous->next != current) {
+            previous = previous->next;
+        }
+        
+        while (current->next != current) {
+            // Находим m-го человека
+            for (int i = 1; i < m; ++i) {
+                previous = current;
+                current = current->next;
+            }
+            
+            // Удаляем текущего человека
+            previous->next = current->next;
+            Node* toDelete = current;
+            current = previous->next;
+            delete toDelete;
+        }
+        
+        int survivor = current->data;
+        delete current;
+        
+        if (survivor == l) {
+            return start;
+        }
+    }
+    
+    return -1; // не должно происходить при корректных входных данных
+}
+#include <queue>
+#include <list>
+
+// Решение задачи a) с использованием очереди из STL
+int josephus_stl_queue_a(int n, int m) {
+    queue<int> q;
+    for (int i = 1; i <= n; ++i) {
+        q.push(i);
+    }
+    
+    while (q.size() > 1) {
+        // Перекладываем m-1 человек в конец очереди
+        for (int i = 1; i < m; ++i) {
+            q.push(q.front());
+            q.pop();
+        }
+        // Удаляем m-го человека
+        q.pop();
+    }
+    
+    return q.front();
+}
+
+// Решение задачи a) с использованием списка из STL
+int josephus_stl_list_a(int n, int m) {
+    list<int> people;
+    for (int i = 1; i <= n; ++i) {
+        people.push_back(i);
+    }
+    
+    auto it = people.begin();
+    while (people.size() > 1) {
+        // Находим m-го человека
+        for (int i = 1; i < m; ++i) {
+            ++it;
+            if (it == people.end()) {
+                it = people.begin();
+            }
+        }
+        
+        // Удаляем текущего человека
+        it = people.erase(it);
+        if (it == people.end()) {
+            it = people.begin();
+        }
+    }
+    
+    return *people.begin();
+}
+
+// Решение задачи b) с использованием списка из STL
+int josephus_stl_list_b(int n, int m, int l) {
+    for (int start = 1; start <= n; ++start) {
+        list<int> people;
+        for (int i = 1; i <= n; ++i) {
+            people.push_back(i);
+        }
+        
+        // Находим начальную позицию
+        auto it = people.begin();
+        while (*it != start) {
+            ++it;
+        }
+        
+        while (people.size() > 1) {
+            // Находим m-го человека
+            for (int i = 1; i < m; ++i) {
+                ++it;
+                if (it == people.end()) {
+                    it = people.begin();
+                }
+            }
+            
+            // Удаляем текущего человека
+            it = people.erase(it);
+            if (it == people.end()) {
+                it = people.begin();
+            }
+        }
+        
+        if (*people.begin() == l) {
+            return start;
+        }
+    }
+    
+    return -1; // не должно происходить при корректных входных данных
+}
+void test_and_compare() {
+    const int n = 3000;
+    const int m = 25;
+    const int l = 1230; // пример значения для задачи b)
+    
+    cout << "Семёнов Дмитрий Викторович 020303-АИСа-о24" << endl;
+    cout << "Тестирования при n = " << n << ", m = " << m << endl;
+    
+    // Задача a)
+    auto start = high_resolution_clock::now();
+    int res_array_a = josephus_array_a(n, m);
+    auto stop = high_resolution_clock::now();
+    auto duration_array_a = duration_cast<microseconds>(stop - start);
+    cout << "Массив (a): " << res_array_a << ", время: " << duration_array_a.count() << " мкс" << endl;
+    
+    start = high_resolution_clock::now();
+    int res_list_a = josephus_list_a(n, m);
+    stop = high_resolution_clock::now();
+    auto duration_list_a = duration_cast<microseconds>(stop - start);
+    cout << "Список (a): " << res_list_a << ", время: " << duration_list_a.count() << " мкс" << endl;
+    
+    start = high_resolution_clock::now();
+    int res_stl_queue_a = josephus_stl_queue_a(n, m);
+    stop = high_resolution_clock::now();
+    auto duration_stl_queue_a = duration_cast<microseconds>(stop - start);
+    cout << "STL очередь (a): " << res_stl_queue_a << ", время: " << duration_stl_queue_a.count() << " мкс" << endl;
+    
+    start = high_resolution_clock::now();
+    int res_stl_list_a = josephus_stl_list_a(n, m);
+    stop = high_resolution_clock::now();
+    auto duration_stl_list_a = duration_cast<microseconds>(stop - start);
+    cout << "STL список (a): " << res_stl_list_a << ", время: " << duration_stl_list_a.count() << " мкс" << endl;
+    
+    // Проверка корректности
+    if (res_array_a != res_list_a || res_list_a != res_stl_queue_a || res_stl_queue_a != res_stl_list_a) {
+        cerr << "Ошибка: Разные результаты для задания a!" << endl;
+    }
+    
+    // Задача b)
+    cout << "\nТестирование при n = " << n << ", m = " << m << ", l = " << l << endl;
+    
+    start = high_resolution_clock::now();
+    int res_array_b = josephus_array_b(n, m, l);
+    stop = high_resolution_clock::now();
+    auto duration_array_b = duration_cast<microseconds>(stop - start);
+    cout << "Массив (b): " << res_array_b << ", время: " << duration_array_b.count() << " мкс" << endl;
+    
+    start = high_resolution_clock::now();
+    int res_list_b = josephus_list_b(n, m, l);
+    stop = high_resolution_clock::now();
+    auto duration_list_b = duration_cast<microseconds>(stop - start);
+    cout << "Список (b): " << res_list_b << ", время: " << duration_list_b.count() << " мкс" << endl;
+    
+    start = high_resolution_clock::now();
+    int res_stl_list_b = josephus_stl_list_b(n, m, l);
+    stop = high_resolution_clock::now();
+    auto duration_stl_list_b = duration_cast<microseconds>(stop - start);
+    cout << "STL список (b): " << res_stl_list_b << ", время: " << duration_stl_list_b.count() << " мкс" << endl;
+    
+    // Проверка корректности
+    if (res_array_b != res_list_b || res_list_b != res_stl_list_b) {
+        cerr << "Ошибка: Разные результаты для задания b!" << endl;
+    }
+}
+
+int main() {
+    test_and_compare();
+    return 0;
+}
